@@ -16,7 +16,7 @@ contract Daio {
     uint public fundTotal;
     uint public fundShare;
     uint public fundingMinimumTime;
-    uint public fundMinimumTime;
+uint public fundMinimumTime;
     bool public fundActive = false;
     event FundingChanged(uint total);
     event SurplusReturned(uint share, uint shareMax, uint surplus);
@@ -68,12 +68,12 @@ contract Daio {
 
     function safeMult(uint a, uint b) internal returns (uint) {
         uint c = a * b;
-        assert(a==0 || c / a == b);
+        assert(a == 0 || c / a == b);
         return c;
     }
 
     function safeSub(uint a, uint b) internal returns (uint) {
-        assert (b<=a);
+        assert (b <= a);
         return a - b;
     }
 
