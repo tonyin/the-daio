@@ -16,7 +16,7 @@ contract Daio {
     uint public fundTotal;
     uint public fundShare;
     uint public fundingMinimumTime;
-uint public fundMinimumTime;
+    uint public fundMinimumTime;
     bool public fundActive = false;
     event FundingChanged(uint total);
     event SurplusReturned(uint share, uint shareMax, uint surplus);
