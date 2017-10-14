@@ -60,13 +60,30 @@ contract Daio {
         _;
     }
 
+    function safeAdd(uint a, uint b) internal returns(uint) {
+        uint c = a + b;
+        assert(c >= a);
+        return c;
+    }
+
+    function safeMult(uint a, uint b) internal returns (uint) {
+        uint c = a * b;
+        assert(a==0 || c / a == b);
+        return c;
+    }
+
+    function safeSub(uint a, uint b) internal returns (uint) {
+        assert (b<=a);
+        return a - b;
+    }
+
     function Daio(uint fundingMinimumMinutes) payable public {
         require(msg.value > 0);
-        fundingMinimumTime = now + fundingMinimumMinutes * 1 minutes;
+        fundingMinimumTime = safeMult(safeAdd(now, fundingMinimumMinutes), 1 minutes);
         addMember(0, "daio", 0); // dummy daio for member 0
         addMember(msg.sender, "founder", msg.value);
         fundShare = msg.value;
-        fundTotal += msg.value;
+        fundTotal = safeAdd(fundTotal, msg.value);
         FundingChanged(fundTotal);
     }
 
@@ -100,13 +117,13 @@ contract Daio {
             fundShare = share;
         }
         if (share > fundShare) {
-            uint surplus = share - fundShare;
-            share -= surplus;
+            uint surplus = safeSub(share, fundShare);
+            share = safeSub(share, surplus);
             msg.sender.transfer(surplus);
             SurplusReturned(msg.value, fundShare, surplus);
         }
         addMember(msg.sender, memberName, share);
-        fundTotal += share;
+        fundTotal = safeAdd(fundTotal, share);
         FundingChanged(fundTotal);
     }
 
@@ -115,7 +132,7 @@ contract Daio {
         require(!fundActive);
         require(members.length-1 >= membersMinimum);
         fundActive = true;
-        fundMinimumTime = now + fundMinimumMinutes * 1 minutes;
+        fundMinimumTime = safeMult(safeAdd(now, fundMinimumMinutes), 1 minutes);
     }
 
     function addProposal(
@@ -134,7 +151,7 @@ contract Daio {
         p.volume = volume;
         p.price = price;
         p.description = description;
-        p.deadline = now + votingMinutes * 1 minutes;
+        p.deadline = safeMult(safeAdd(now, votingMinutes), 1 minutes);
         p.passed = false;
         p.executed = false;
         p.votesFor = 0;
@@ -181,4 +198,3 @@ contract Daio {
         fundTotal = 0;
         fundShare = 0;
     }
-}
