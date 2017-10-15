@@ -17,6 +17,8 @@ Coordinate a simple investment decision—buy something or not— among all part
 
 ### Testnet Blockchain (OSX)
 
+For a more thorough step-by-step guide, see [HowTo: Set up an Ethereum private local testnet](https://tonyy.in/how-to-set-up-an-ethereum-private-local-testnet/)
+
 1. Create a new dir to store testnet blockchain files: `mkdir ~/testnet`
 
 2. Define genesis block configs in a new json file `genesis.json`:
@@ -44,7 +46,7 @@ Coordinate a simple investment decision—buy something or not— among all part
 
 4. Create an address and start mining:
 
-`geth --datadir "~/eth-private" --identity "Private" --networkid 15 --nodiscover --maxpeers 0 console`
+`geth --datadir "~/testnet" --identity "Private" --networkid 15 --nodiscover --maxpeers 0 console`
 
 `personal.newAccount("password")`
 
