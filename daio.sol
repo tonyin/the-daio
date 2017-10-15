@@ -194,7 +194,7 @@ contract Daio {
         for (i = 1; i < members.length; i++) {
             removeMember(i);
         }
+        fundTotal = safeSub(fundTotal, safeMult(share,membersTotal)); // the reminder is left in the fundTotal
         membersTotal = 0;
-        fundTotal = 0;
         fundShare = 0;
     }
