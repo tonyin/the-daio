@@ -1,6 +1,23 @@
 pragma solidity ^0.4.15;
 
-contract Daio {
+contract SafeMath {
+    function safeAdd(uint a, uint b) internal returns(uint) {
+        uint c = a + b;
+        assert(c >= a && c >= b);
+        return c;
+    }
+    function safeSub(uint a, uint b) internal returns (uint) {
+        assert (b <= a);
+        return a - b;
+    }
+    function safeMul(uint a, uint b) internal returns (uint) {
+        uint c = a * b;
+        assert(a == 0 || c / a == b);
+        return c;
+    }
+}
+
+contract Daio is SafeMath {
     uint public membersMinimum = 2;
     uint public membersTotal;
     Member[] public members;
@@ -15,12 +32,14 @@ contract Daio {
 
     uint public fundTotal;
     uint public fundShare;
-    uint public fundingMinimumTime;
+    uint public contributionMinimumTime;
     uint public fundMinimumTime;
     bool public fundActive = false;
     event FundingChanged(uint total);
     event SurplusReturned(uint share, uint shareMax, uint surplus);
-    event FundLiquidated(address member, string name, uint share);
+    event FundLaunched(uint funds, uint mems, uint share, uint minTime);
+    event ShareDistributed(address member, string name, uint share);
+    event FundLiquidated(uint funds, uint mems, uint share);
 
     uint public proposalsTotal;
     Proposal[] public proposals;
@@ -60,26 +79,9 @@ contract Daio {
         _;
     }
 
-    function safeAdd(uint a, uint b) internal returns(uint) {
-        uint c = a + b;
-        assert(c >= a);
-        return c;
-    }
-
-    function safeMult(uint a, uint b) internal returns (uint) {
-        uint c = a * b;
-        assert(a == 0 || c / a == b);
-        return c;
-    }
-
-    function safeSub(uint a, uint b) internal returns (uint) {
-        assert (b <= a);
-        return a - b;
-    }
-
-    function Daio(uint fundingMinimumMinutes) payable public {
+    function Daio(uint contributionMinimumMinutes) payable public {
         require(msg.value > 0);
-        fundingMinimumTime = safeMult(safeAdd(now, fundingMinimumMinutes), 1 minutes);
+        contributionMinimumTime = safeAdd(now, contributionMinimumMinutes * 1 minutes);
         addMember(0, "daio", 0); // dummy daio for member 0
         addMember(msg.sender, "founder", msg.value);
         fundShare = msg.value;
@@ -128,11 +130,12 @@ contract Daio {
     }
 
     function launchFund(uint fundMinimumMinutes) onlyMembers public {
-        require(now >= fundingMinimumTime);
+        require(now >= contributionMinimumTime);
         require(!fundActive);
         require(members.length-1 >= membersMinimum);
         fundActive = true;
-        fundMinimumTime = safeMult(safeAdd(now, fundMinimumMinutes), 1 minutes);
+        fundMinimumTime = safeAdd(now, fundMinimumMinutes * 1 minutes);
+        FundLaunched(fundTotal, membersTotal, fundShare, fundMinimumTime);
     }
 
     function addProposal(
@@ -151,7 +154,7 @@ contract Daio {
         p.volume = volume;
         p.price = price;
         p.description = description;
-        p.deadline = safeMult(safeAdd(now, votingMinutes), 1 minutes);
+        p.deadline = safeAdd(now, votingMinutes * 1 minutes);
         p.passed = false;
         p.executed = false;
         p.votesFor = 0;
@@ -182,6 +185,25 @@ contract Daio {
         }
     }
 
+    function checkProposalCode(
+        uint proposalId,
+        address recipient,
+        uint volume,
+        uint price,
+        bytes transactionBytecode
+    ) constant public returns(bool codeCheckCorrect) {
+        Proposal storage p = proposals[proposalId];
+        return p.proposalHash == keccak256(recipient, volume, price, transactionBytecode);
+    }
+
+    function executeProposal(uint proposalId, bytes transactionBytecode) onlyMembers public {
+        Proposal storage p = proposals[proposalId];
+        require(p.passed);
+        require(!p.executed);
+        require(checkProposalCode(proposalId, p.recipient, p.volume, p.price, transactionBytecode));
+        ProposalExecuted(proposalId, p.recipient, p.volume, p.price);
+    }
+
     function liquidateFund() onlyMembers payable public {
         require(now >= fundMinimumTime);
         require(fundActive);
@@ -189,12 +211,14 @@ contract Daio {
         uint share = fundTotal / membersTotal;
         for (uint i = 1; i < members.length; i++) {
             members[i].member.transfer(share);
-            FundLiquidated(members[i].member, members[i].name, share);
+            ShareDistributed(members[i].member, members[i].name, share);
         }
-        for (i = 1; i < members.length; i++) {
+        FundLiquidated(fundTotal, membersTotal, share);
+        for (i = 1; i <= members.length; i++) {
             removeMember(i);
         }
         membersTotal = 0;
         fundTotal = 0;
         fundShare = 0;
     }
+}
