@@ -186,15 +186,17 @@ contract Daio {
         require(now >= fundMinimumTime);
         require(fundActive);
         fundActive = false;
-        uint share = fundTotal / membersTotal;
-        for (uint i = 1; i < members.length; i++) {
-            members[i].member.transfer(share);
-            FundLiquidated(members[i].member, members[i].name, share);
-        }
-        for (i = 1; i < members.length; i++) {
-            removeMember(i);
-        }
-        fundTotal = safeSub(fundTotal, safeMult(share,membersTotal)); // the reminder is left in the fundTotal
-        membersTotal = 0;
-        fundShare = 0;
+	if(membersTotal > 0) {	
+	    uint share = fundTotal / membersTotal;
+	    for (uint i = 1; i < members.length; i++) {
+	        members[i].member.transfer(share);
+	        FundLiquidated(members[i].member, members[i].name, share);
+	    }
+	    for (i = 1; i < members.length; i++) {
+	        removeMember(i);
+	    }
+	    fundTotal = safeSub(fundTotal, safeMult(share,membersTotal)); // the reminder is left in the fundTotal
+	    membersTotal = 0;
+	    fundShare = 0;
+	}
     }
